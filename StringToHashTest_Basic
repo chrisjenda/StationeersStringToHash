@@ -35,7 +35,7 @@ const @ConcatNumber = 11
 const @CompareKnown = true
 
 # Devices:
-alias HashGeneratorIC = IC.Device["StructureCircuitHousing"].Name["LarreManagerIC"] # Hash Generator IC HashGeneratorIC
+alias HashGeneratorIC = IC.Device["StructureCircuitHousing"].Name["HashGeneratorIC"] # Hash Generator IC HashGeneratorIC
 alias DEBUG = IC.Device["StructureConsoleLED5"].Name["DEBUG"] # (Optional) Debug Output
 
 # Reset Debug Output
