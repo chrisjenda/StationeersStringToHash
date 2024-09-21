@@ -1,5 +1,5 @@
 # StationeersStringToHash
-Script to Convert an Array of Ascii Strings plus Concatinate an Integer to the end in IC10 Basic
+Script to Convert an Array of Ascii Strings plus Concatenate an Integer to the end in IC10 Basic
 
 - StringToHash_Basic: This is the Main Script (Hash Generator), this Version uses the Memory to store the CRC32 Table rather than the Stack which may be better or worse depending on the final implementation.  NOTE: This File contains the Uncompiled Basic Version (NOT the IC10 Code)
   
