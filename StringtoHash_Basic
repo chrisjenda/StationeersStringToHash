@@ -1,0 +1,144 @@
+##Meta: AddMipsWrapper = put,3
+##Meta: AddMipsWrapper = get,2
+
+##Meta: Author = Salacious
+##Meta:Comment=Title: String to Hash Generator (Memory Version)
+
+##Meta:Comment=Description:
+##Meta:Comment=Unprecedented, Proof of Concept Script to Showcase String Concatination in Pure IC10
+##Meta:Comment=Used to Build a List of String Hashes into Memory Dynamically, Like "Pot1-99"
+
+##Meta:Comment=Instructions:
+##Meta:Comment=Name an IC "HashGeneratorIC" and Flash this Script to it
+##Meta:Comment=Wait for Orange light to Stop Flashing or Status to be 0 on the IC
+##Meta:Comment=Flash the String Hash Generator Test Script to another IC read its Instructions
+
+##Meta:Comment=Status Codes:
+##Meta:Comment=1 - Ready for Input
+##Meta:Comment=1.1 - Building CRC32 Table
+##Meta:Comment=1.2 - Clearing Input String / Reset
+##Meta:Comment=1.3 - Building String Hash
+##Meta:Comment=1.4 - Hash Output is Ready in IC Status
+
+##Meta:Comment=DONT FORGET TO SET ALL -8888 TO db AND FOR (Put) OPCODES REMOVE R0 AND ADD 0 After Compile
+
+# Devices (Optional)
+alias Status = IC.Device["StructureConsoleLED5"].Name["Status"] # Status Display
+alias DEBUG = IC.Device["StructureConsoleLED5"].Name["DEBUG"] #DEBUG
+
+# Init Constants
+const INITIAL_CRC = 4294967295  #0xFFFFFFFF - Max 32Bit Unsigned Integer
+const POLY = 3988292384 #CRC32 Polynomial
+
+const InputStringStartAddress = 20 # Start Address of the Input String
+const MaxStringLength = 10 # Maximum Length of the Input string ( More than 10 is Untested )
+
+# Update Status
+Status.Setting = 1.1 # Building CRC32 Table
+
+# Init Hash Generator Status
+db.Setting = -1
+
+# Set Display Mode to Percentage
+DEBUG.Mode = 1
+
+##Meta:Comment=Change -8888 to db on Line Below
+var TableCreatedFlag = get(-8888, 511)
+if (TableCreatedFlag == 256) then
+    Status.Setting = 0
+    goto SkipTable
+endif
+
+# Populate All 256 Entries of the CRC32 table ( Takes 64 Seconds )
+# 9984 Total Line Executions and 77 Internal Yields Totaling 38.5 Seconds
+# Debug Output Takes an Extra 512 Lines and 1 second ( 2 Yields )
+for byte = 0 to 255
+  VAR tablecrc = byte
+  for I = 0 to 7
+    if (bit_and(tablecrc, 1)) == 1 then
+      tablecrc = bit_xor(bit_srl(tablecrc, 1), POLY)
+    else
+      tablecrc = bit_srl(tablecrc, 1)
+    endif
+  next
+  var tableAddress = byte + 200
+  ##Meta:Comment=put db r1 r4 <- Copy and Paste to Line Below
+  put(-8888, tableAddress, tablecrc)
+
+  # Display Percentage Complete
+  DEBUG.Setting = (byte / 255)
+next
+
+##Meta:Comment=put db 511 256 <- Copy and Paste to Line Below
+put(-8888, 511, 256)
+
+SkipTable:
+# Reset Debug Display
+DEBUG.Setting = 0
+DEBUG.Mode = 0
+
+# Clear String Memory
+goto ClearMem
+
+Main:
+yield()
+
+# Status 1 is Build Hash
+if (db.Setting == 1) then
+
+    Status.Setting = 1.3 # Building Hash
+    
+    # Output Requested, Build Hash from String Array
+    var crc = INITIAL_CRC
+    for Index = 0 to MaxStringLength
+        var ASCIICharAddress = InputStringStartAddress + Index
+        ##Meta:Comment=Change -8888 to db on Line Below
+        var ASCIIChar = get(-8888, ASCIICharAddress)
+        if (ASCIIChar == -1) then
+            break
+        endif
+        var lookup_index = bit_and(bit_xor(crc, ASCIIChar), 255)
+        ##Meta:Comment=Change -8888 to db on Line Below
+        var LookupIndexAddress = get(-8888, lookup_index + 200)
+        crc = bit_xor(bit_srl(crc, 8), LookupIndexAddress)
+        #yield()
+    next
+         
+    # Final XOR
+    crc = bit_xor(crc, INITIAL_CRC)
+    
+    # Handle Endianness, Convert to signed 32-bit integer if needed ( May not be needed )
+    if crc > 2147483647 then
+        crc = crc - 4294967296
+    endif
+    
+    Status.Setting = 1.4 # Hash Ready
+    
+    # Output Hash
+    DB.Setting = crc
+
+# Status 2 is Reset
+elseif (DB.Setting == 2) then # Reset Hash Generator
+
+    # Clear String Memory
+    goto ClearMem
+    
+else #Status is Idle
+
+    # Idle and Wait for Input or Reset
+    yield()
+    Status.Setting = 1 # Idle
+    
+endif
+
+goto Main
+
+ClearMem:
+    Status.Setting = 1.2 # Clearing Mem
+    for Address = InputStringStartAddress to InputStringStartAddress + MaxStringLength
+        ##Meta:Comment=put db r1 0 <- Copy and Paste to Line Below
+        put(-8888, Address, 0)
+    next
+    # Set Status to Idle
+    db.Setting = 0
+goto Main
