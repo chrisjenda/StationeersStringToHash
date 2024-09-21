@@ -11,7 +11,7 @@ define compareknown 0 #l.35
 # * Change @concat_number to number of Choice ( Ignored with Using Range )
 # * Change @Range to 1 to Test Looping through all 99 Concatinated Numbers
 # * Change @CompareKnown to 1 to Test the Result of @concat_number against a Known String
-# * Change the Name of the this IC to the string that you want to Compare against I.E Pot11
+# * Change the Name of the this IC to the string that you want to Compare against
 # * IC State is the Result as a Hash, or if @CompareKnown then Result is 1 for Success, -1 for Fail
 # Max String Length
 s db Setting 0 #l.21
@@ -34,8 +34,8 @@ push 116 #l.29
 sbn -815193061 -1678670569 Setting 0 #l.42
 sbn -815193061 -1678670569 Mode 0 #l.43
 # Reset the Hash Generator
-sbn -128473777 -1523614549 Setting 2 #l.46
-lbn r0 -128473777 -1523614549 Setting 0 #l.47
+sbn -128473777 1616315312 Setting 2 #l.46
+lbn r0 -128473777 1616315312 Setting 0 #l.47
 bne r0 2 41 #l.47
 yield #l.48
 j 37 #l.49
@@ -61,7 +61,7 @@ add sp 6 r7 #l.70
 push r0 #l.70
 # Get ones digit
 # Wait for Hash Generator to be Ready
-lbn r0 -128473777 -1523614549 Setting 0 #l.73
+lbn r0 -128473777 1616315312 Setting 0 #l.73
 beq r0 0 66 #l.73
 yield #l.74
 # Ask Hash Generator to Convert String Array (input_chars) to Hash
@@ -99,7 +99,7 @@ move sp 2 #l.103
 pop r4 #l.103
 pop r8 #l.103
 # Get ReferenceID so we can Use PutD
-lbn r3 -128473777 -1523614549 ReferenceId 0 #l.105
+lbn r3 -128473777 1616315312 ReferenceId 0 #l.105
 # Write each Ascii Char in the String array to the Hash Generator Memory
 move r2 0 #l.108
 add r1 r2 20 #l.109
@@ -113,16 +113,16 @@ j 104 #l.110
 add r0 r2 21 #l.113
 putd r3 r0 -1 #l.113
 # Tell the Hash Generator IC that we have finished input and want a Hash
-sbn -128473777 -1523614549 Setting 1 #l.116
+sbn -128473777 1616315312 Setting 1 #l.116
 # Wait for Output
-lbn r0 -128473777 -1523614549 Setting 0 #l.119
+lbn r0 -128473777 1616315312 Setting 0 #l.119
 bne r0 1 121 #l.119
 yield #l.120
 j 117 #l.121
 # Get the Hash from the Hash Generator Setting
-lbn r0 -128473777 -1523614549 Setting 0 #l.124
+lbn r0 -128473777 1616315312 Setting 0 #l.124
 # Reset the Hash Generator
-sbn -128473777 -1523614549 Setting 2 #l.127
+sbn -128473777 1616315312 Setting 2 #l.127
 move r9 r0 #l.128
 j ra #l.128
-# Compiled at 2024-09-21 02:31 by Exca's Basic10.
+# Compiled at 2024-09-21 02:42 by Exca's Basic10.
