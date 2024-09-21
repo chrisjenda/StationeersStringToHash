@@ -1,0 +1,128 @@
+define range 0 #l.24
+define concatnumber 11 #l.32
+define compareknown 0 #l.35
+# * Title: String to Hash Generator Test
+# * Description:
+# * Proof of Concept Script to Showcase String Concatination in Pure IC10
+# * Used to Build a List of String Hashes into Memory Dynamically, Like "Pot1-99"
+# * Instructions:
+# * Make Sure that the Orange Light has Stopped and/or the Status on the Hash Generator IC is 0
+# * Change input_chars Array to String of Choice (Up to 10 Characters)
+# * Change @concat_number to number of Choice ( Ignored with Using Range )
+# * Change @Range to 1 to Test Looping through all 99 Concatinated Numbers
+# * Change @CompareKnown to 1 to Test the Result of @concat_number against a Known String
+# * Change the Name of the this IC to the string that you want to Compare against I.E Pot11
+# * IC State is the Result as a Hash, or if @CompareKnown then Result is 1 for Success, -1 for Fail
+# Max String Length
+s db Setting 0 #l.21
+# Reset Output
+# Single Number Test or Range of Numbers
+# String Array
+move sp 6 #l.27
+push 112 #l.27
+# ASCII for 'p'
+push 111 #l.28
+# ASCII for 'o'
+push 116 #l.29
+# ASCII for 't'
+# Number to be Concatenated (1-99)
+# Bool Compare Known String Hash ( 0 - Disable )
+# Devices:
+# Hash Generator IC HashGeneratorIC
+# (Optional) Debug Output
+# Reset Debug Output
+sbn -815193061 -1678670569 Setting 0 #l.42
+sbn -815193061 -1678670569 Mode 0 #l.43
+# Reset the Hash Generator
+sbn -128473777 -1523614549 Setting 2 #l.46
+lbn r0 -128473777 -1523614549 Setting 0 #l.47
+bne r0 2 41 #l.47
+yield #l.48
+j 37 #l.49
+move r6 concatnumber #l.51
+move r5 1 #l.53
+move r7 2 #l.54
+# Dont Change concat_number if Not Range Testing
+bne range 1 47 #l.57
+move r6 r5 #l.58
+# Handle tens place
+blt r6 10 56 #l.62
+add r7 r7 1 #l.63
+div r0 r6 10 #l.64
+add r1 48 r0 #l.64
+add sp 6 r7 #l.64
+push r1 #l.64
+# Get tens digit
+mod r6 r6 10 #l.65
+# Handle ones place
+add r7 r7 1 #l.69
+add r0 48 r6 #l.70
+add sp 6 r7 #l.70
+push r0 #l.70
+# Get ones digit
+# Wait for Hash Generator to be Ready
+lbn r0 -128473777 -1523614549 Setting 0 #l.73
+beq r0 0 66 #l.73
+yield #l.74
+# Ask Hash Generator to Convert String Array (input_chars) to Hash
+move sp 7 #l.78
+pop r0 #l.78
+move sp 0 #l.78
+push r0 #l.78
+push r7 #l.78
+jal 97 #l.78
+s db Setting r9 #l.78
+# Break Loop after one Iteration if Not Range Testing
+bne range 0 80 #l.81
+sbn -815193061 -1678670569 Setting concatnumber #l.82
+# Show on the Status the Number to Concatenate
+j 85 #l.83
+j 81 #l.84
+sbn -815193061 -1678670569 Setting r5 #l.85
+yield #l.87
+beq r5 99 85 #l.88
+add r5 r5 1 #l.88
+j 43 #l.88
+# Do Compare Test And Output Result if Enabled
+and r0 1 range #l.91
+seq r1 r0 0 #l.91
+bne compareknown r1 95 #l.91
+l r1 db Setting #l.92
+l r0 db NameHash #l.92
+bne r1 r0 94 #l.92
+s db Setting 1 #l.93
+j 95 #l.94
+s db Setting -1 #l.95
+yield #l.100
+j 95 #l.101
+move sp 2 #l.103
+pop r4 #l.103
+pop r8 #l.103
+# Get ReferenceID so we can Use PutD
+lbn r3 -128473777 -1523614549 ReferenceId 0 #l.105
+# Write each Ascii Char in the String array to the Hash Generator Memory
+move r2 0 #l.108
+add r1 r2 20 #l.109
+add sp 7 r2 #l.109
+pop r0 #l.109
+putd r3 r1 r0 #l.109
+beq r2 r4 111 #l.110
+add r2 r2 1 #l.110
+j 104 #l.110
+# Write the End Bit to the Hash Generator Memory
+add r0 r2 21 #l.113
+putd r3 r0 -1 #l.113
+# Tell the Hash Generator IC that we have finished input and want a Hash
+sbn -128473777 -1523614549 Setting 1 #l.116
+# Wait for Output
+lbn r0 -128473777 -1523614549 Setting 0 #l.119
+bne r0 1 121 #l.119
+yield #l.120
+j 117 #l.121
+# Get the Hash from the Hash Generator Setting
+lbn r0 -128473777 -1523614549 Setting 0 #l.124
+# Reset the Hash Generator
+sbn -128473777 -1523614549 Setting 2 #l.127
+move r9 r0 #l.128
+j ra #l.128
+# Compiled at 2024-09-21 02:31 by Exca's Basic10.
