@@ -1,0 +1,129 @@
+##Meta: AddMipsWrapper = putd,2
+
+##Meta: Author = Salacious
+##Meta:Comment=Title: String to Hash Generator Test
+
+##Meta:Comment=Description:
+##Meta:Comment=Proof of Concept Script to Showcase String Concatination in Pure IC10
+##Meta:Comment=Used to Build a List of String Hashes into Memory Dynamically, Like "Pot1-99"
+
+##Meta:Comment=Instructions:
+##Meta:Comment=Make Sure that the Orange Light has Stopped and/or the Status on the Hash Generator IC is 0
+##Meta:Comment=Change input_chars Array to String of Choice (Up to 10 Characters)
+##Meta:Comment=Change @concat_number to number of Choice ( Ignored with Using Range )
+##Meta:Comment=Change @Range to 1 to Test Looping through all 99 Concatinated Numbers
+##Meta:Comment=Change @CompareKnown to 1 to Test the Result of @concat_number against a Known String
+##Meta:Comment=Change the Name of the this IC to the string that you want to Compare against
+##Meta:Comment=IC State is the Result as a Hash, or if @CompareKnown then Result is 1 for Success, -1 for Fail
+
+const InputStringStartAddress = 20
+array InputChars[10] # Max String Length
+db.Setting = 0 # Reset Output
+
+# Single Number Test or Range of Numbers
+const @Range = false 
+
+# String Array
+InputChars[0] = 112  # ASCII for 'p'
+InputChars[1] = 111  # ASCII for 'o'
+InputChars[2] = 116  # ASCII for 't'
+
+# Number to be Concatenated (1-99)
+const @ConcatNumber = 11
+
+# Bool Compare Known String Hash ( 0 - Disable )
+const @CompareKnown = true
+
+# Devices:
+alias HashGeneratorIC = IC.Device["StructureCircuitHousing"].Name["LarreManagerIC"] # Hash Generator IC HashGeneratorIC
+alias DEBUG = IC.Device["StructureConsoleLED5"].Name["DEBUG"] # (Optional) Debug Output
+
+# Reset Debug Output
+DEBUG.Setting = 0
+DEBUG.Mode = 0
+
+# Reset the Hash Generator
+HashGeneratorIC.Setting = 2
+while (HashGeneratorIC.Setting == 2)
+    yield()
+endwhile
+
+var concatNumber = @ConcatNumber
+
+for count = 1 to 99
+    var digits = 2
+    
+    # Dont Change concat_number if Not Range Testing
+    if (@Range == true) then
+        concatNumber = count
+    endif
+    
+    # Handle tens place
+    if concatNumber >= 10 then
+        digits++
+        InputChars[digits] = 48 + (concatNumber / 10)  # Get tens digit
+        concatNumber = mod(concatNumber, 10)
+    endif
+    
+    # Handle ones place
+    digits++
+    InputChars[digits] = 48 + concatNumber  # Get ones digit
+    
+    # Wait for Hash Generator to be Ready
+    if (HashGeneratorIC.Setting != 0) then
+        yield()
+    endif
+    
+    # Ask Hash Generator to Convert String Array (input_chars) to Hash
+    db.Setting = GenerateStringHash(InputChars, digits)
+    
+    #Break Loop after one Iteration if Not Range Testing
+    if (@Range == false) then
+        DEBUG.Setting = @ConcatNumber # Show on the Status the Number to Concatenate
+        break
+    else
+        DEBUG.Setting = count
+    endif
+    yield()
+next
+
+# Do Compare Test And Output Result if Enabled
+if (@CompareKnown == true && @Range == false) then
+ if (db.Setting == db.NameHash) then
+    db.Setting = 1
+ else
+    db.Setting = -1
+ endif
+endif
+
+Done:
+yield()
+goto Done
+
+FUNCTION GenerateStringHash(InputChars[10], StringLength)
+    # Get ReferenceID so we can Use PutD
+    var LarreICID = HashGeneratorIC.ReferenceId
+    
+    # Write each Ascii Char in the String array to the Hash Generator Memory
+    for Index = 0 to StringLength
+       LarreICID = putd(Index + InputStringStartAddress, InputChars[Index])
+    next
+    
+    # Write the End Bit to the Hash Generator Memory
+    LarreICID = putd(Index + InputStringStartAddress + 1, -1)
+    
+    # Tell the Hash Generator IC that we have finished input and want a Hash
+    HashGeneratorIC.Setting = 1
+    
+    # Wait for Output
+    while (HashGeneratorIC.Setting == 1)
+        yield()
+    endwhile
+    
+    # Get the Hash from the Hash Generator Setting
+    var Hash = HashGeneratorIC.Setting
+    
+    # Reset the Hash Generator
+    HashGeneratorIC.Setting = 2
+    RETURN Hash
+ENDFUNCTION
